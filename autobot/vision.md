@@ -1,5 +1,5 @@
 ---
-title: Auto Bot
+title: Vision Title
 menu: main
 ---
 
