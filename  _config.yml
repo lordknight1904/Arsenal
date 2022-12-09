@@ -3,6 +3,9 @@ title: Arsenal
 #   name: Leonard Ngo
 #   email: "lordknight1904@gmail.com"
 
+webmentions:
+  debug: true
+
 theme: minima
 # timezone: KR
 # google_analytics: UA-NNNNNNNN-N
