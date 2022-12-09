@@ -1,7 +1,6 @@
 ---
-layout: default
 title: Arsenal
-has_children: true
+menus: header
 ---
 
 This is a read me
