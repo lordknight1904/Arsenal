@@ -6,11 +6,13 @@ title: Arsenal
 webmentions:
   debug: true
 
-remote_theme: jekyll/minima
+theme: minima
 # timezone: KR
 # google_analytics: UA-NNNNNNNN-N
 # minima:
 #   skin: dark
 
-# plugins:
-#   - jekyll-seo-tag
+plugins:
+ - jekyll-menus
+plugins:
+- jekyll-menus
