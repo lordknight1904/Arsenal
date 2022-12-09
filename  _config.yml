@@ -7,9 +7,9 @@ theme: minima
 timezone: KR
 # google_analytics: UA-NNNNNNNN-N
 minima:
-  skin: auto
+  skin: dark
 
 plugins:
   - jekyll-seo-tag
-  
-header_pages: []
+
+# header_pages: []
