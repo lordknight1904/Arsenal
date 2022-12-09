@@ -1,6 +1,6 @@
 ---
 title: Arsenal
-menu: main
+menus: header
 ---
 
 This is a read me
