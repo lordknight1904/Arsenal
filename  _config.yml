@@ -1,1 +1,16 @@
+title: Arsenal
+author:
+  name: Leonard Ngo
+  email: "lordknight1904@gmail.com"
+
 theme: minima
+timezone: KR
+# google_analytics: UA-NNNNNNNN-N
+minima:
+  skin: auto
+
+plugins:
+  - jekyll-seo-tag
+
+header_pages:
+  - about.md
