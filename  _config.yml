@@ -11,5 +11,3 @@ minima:
 
 plugins:
   - jekyll-seo-tag
-
-# header_pages: []
