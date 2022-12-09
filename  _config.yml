@@ -6,7 +6,7 @@ title: Arsenal
 webmentions:
   debug: true
 
-theme: minima
+remote_theme: jekyll/minima
 # timezone: KR
 # google_analytics: UA-NNNNNNNN-N
 # minima:
