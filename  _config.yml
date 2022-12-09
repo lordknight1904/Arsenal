@@ -12,5 +12,11 @@ theme: minima
 # minima:
 #   skin: dark
 
-plugins:
- - jekyll-menus
+links:
+  section_1:
+    - title: home
+      url: /
+      key_trigger: 1
+    - title: my posts
+      url: /posts
+      key_trigger: 2
