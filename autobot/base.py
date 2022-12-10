@@ -45,3 +45,11 @@ class MultiHeadAttention(nn.Module):
         attn = self._calculate_attn(q, k)
 
         o = self.linear(torch.matmul(attn, v))
+
+        return o
+
+
+class RelativeMultiHeadAttention(MultiHeadAttention):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)

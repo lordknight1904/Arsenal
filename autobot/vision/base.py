@@ -26,4 +26,6 @@ class ImageEmbedding(nn.Module):
             Returns:
                 img_emb (B, H*W, D)
         '''
+        print(self.projection(img).shape)
+        print(self.projection(img).flatten(2).shape)
         return self.projection(img).flatten(2).transpose(1, 2)
