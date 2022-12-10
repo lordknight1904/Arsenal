@@ -1,5 +1,5 @@
 ---
 title: This is a title
-layout: home
+layout: page
 ---
 This is a read me
