@@ -1,5 +1,5 @@
 ---
 title: This is a title
-layout: page
+layout: post
 ---
 This is a read me
