@@ -1,3 +1,6 @@
 title: Arsenal
 
 theme: minima
+
+collections:
+  - autobot
