@@ -1,4 +1,6 @@
 import typing
+
+import torch
 from torch import nn
 
 
@@ -11,12 +13,11 @@ class ImageEmbedding(nn.Module):
         super().__init__()
         patch_size = patch_size if isinstance(patch_size, typing.Iterable) else (patch_size, patch_size)
 
+        self.emb_dim = emb_dim
         self.projection = nn.Conv2d(
             3, emb_dim,
             kernel_size=patch_size, stride=patch_size,
         )
-
-        self.name = f'{patch_size[0]}_{patch_size[1]}'
 
     def forward(self, img):
         '''
@@ -26,6 +27,5 @@ class ImageEmbedding(nn.Module):
             Returns:
                 img_emb (B, H*W, D)
         '''
-        print(self.projection(img).shape)
-        print(self.projection(img).flatten(2).shape)
+        # return self.projection(img).flatten(2).transpose(1, 2) / torch.sqrt(self.emb_dim
         return self.projection(img).flatten(2).transpose(1, 2)
