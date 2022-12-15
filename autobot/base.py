@@ -80,18 +80,18 @@ class MultiHeadAttention(nn.Module):
 
         return torch.softmax(logits, dim=-1)
 
-    def forward(self, s, t, mask=None):
-        b, l, *_ = s.shape
-        # _, t, *_ = t.shape
+    def forward(self, x, y, mask=None):
+        b, s, *_ = x.shape
+        _, t, *_ = y.shape
 
-        q = self.query(t).view(b, l, self.num_heads, self.attn_dim).transpose(1,2)
-        k = self.key(s).view(b, l, self.num_heads, self.attn_dim).transpose(1,2)
-        v = self.value(s).view(b, l, self.num_heads, self.v_dim).transpose(1,2)
+        query = self.query(y).view(b, t, self.num_heads, self.attn_dim).transpose(1, 2)
+        key = self.key(x).view(b, s, self.num_heads, self.attn_dim).transpose(1, 2)
+        value = self.value(x).view(b, s, self.num_heads, self.v_dim).transpose(1, 2)
 
-        attn = self._calculate_attn(q, k, mask)
+        attn = self._calculate_attn(query, key, mask)
 
         o = self.linear(
-            torch.matmul(attn, v).contiguous().view(b, -1, self.v_dim)
+            torch.matmul(attn, value).contiguous().view(b, -1, self.v_dim)
         )
 
         return o
