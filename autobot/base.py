@@ -57,13 +57,13 @@ class MultiHeadAttention(nn.Module):
         self.value = self.build_value()
         self.linear = self.build_linear()
 
-    def build_query(self): return nn.Linear(self.emb_dim, self.attn_dim)
+    def build_query(self): return nn.Linear(self.emb_dim*self.num_heads, self.attn_dim*self.num_heads)
 
-    def build_key(self): return nn.Linear(self.emb_dim, self.attn_dim)
+    def build_key(self): return nn.Linear(self.emb_dim*self.num_heads, self.attn_dim*self.num_heads)
 
-    def build_value(self): return nn.Linear(self.emb_dim, self.v_dim)
+    def build_value(self): return nn.Linear(self.emb_dim*self.num_heads, self.v_dim*self.num_heads)
 
-    def build_linear(self): return nn.Linear(self.emb_dim, self.v_dim)
+    def build_linear(self): return nn.Linear(self.emb_dim*self.num_heads, self.v_dim*self.num_heads)
         
     # def _headify(self, x):
     #     b, l, *_ = x.shape
@@ -84,14 +84,14 @@ class MultiHeadAttention(nn.Module):
         b, l, *_ = s.shape
         # _, t, *_ = t.shape
 
-        q = self._headify(self.query(t)).view(b, l, self.num_heads, self.attn_dim).transpose(1,2)
-        k = self._headify(self.key(s)).view(b, l, self.num_heads, self.attn_dim).transpose(1,2)
-        v = self._headify(self.value(s)).view(b, l, self.num_heads, self.v_dim).transpose(1,2)
+        q = self.query(t).view(b, l, self.num_heads, self.attn_dim).transpose(1,2)
+        k = self.key(s).view(b, l, self.num_heads, self.attn_dim).transpose(1,2)
+        v = self.value(s).view(b, l, self.num_heads, self.v_dim).transpose(1,2)
 
         attn = self._calculate_attn(q, k, mask)
 
         o = self.linear(
-            torch.matmul(attn, v).contiguous().view(b, -1, self.v_dim   )
+            torch.matmul(attn, v).contiguous().view(b, -1, self.v_dim)
         )
 
         return o

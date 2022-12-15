@@ -17,7 +17,7 @@ class ImageEmbedding(nn.Module):
         self.projection = nn.Conv2d(
             3, emb_dim,
             kernel_size=patch_size, stride=patch_size,
-        )
+        )  # (B, 3, H, W) --> (B, D, H, W) --> (B, D, H*W) --> (B, H*W, D)
 
     def forward(self, img):
         '''
