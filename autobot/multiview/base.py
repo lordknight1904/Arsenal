@@ -30,9 +30,10 @@ class MultiViewEmbedding(nn.Module):
         B, N, D, H, W = img.shape
         img = img.view(B*N, D, H, W)
         emb = self.projection(img)  # (B*N, D, H, W)
+        _, _, H_, W_ = emb.shape
         emb = emb.flatten(2)  # (B*N, D, H*W)
         emb = emb.transpose(1, 2)  # (B*N, H*W, D)
-        return emb.view(B, N, H*W, self.emb_dim)
+        return emb.view(B, N, H_*W_, self.emb_dim)
 
 
 class SingleViewAttention(MultiHeadAttention):
