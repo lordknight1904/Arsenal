@@ -72,12 +72,14 @@ class MultiHeadAttention(nn.Module):
     def _straight(self, x):
         return x
 
-    def _calculate_attn(self, q, k, mask):
+    def _calculate_logits(self, q, k, mask):
         logits = torch.matmul(q, k.transpose(-1,-2)) / torch.sqrt(self.attn_dim)
         if mask:
             mask = mask.unsqueeze(1)
             logits = logits.masked_fill(mask == 0, -1e9)
+        return logits
 
+    def _calculate_attn(self, logits):
         return torch.softmax(logits, dim=-1)
 
     def forward(self, x, y, mask=None):
@@ -88,7 +90,8 @@ class MultiHeadAttention(nn.Module):
         key = self.key(x).view(b, s, self.num_heads, self.attn_dim).transpose(1, 2)
         value = self.value(x).view(b, s, self.num_heads, self.v_dim).transpose(1, 2)
 
-        attn = self._calculate_attn(query, key, mask)
+        logits = self._calculate_attn(query, key, mask)
+        attn = self._calculate_attn(logits)
 
         o = self.linear(
             torch.matmul(attn, value).contiguous().view(b, -1, self.v_dim)
