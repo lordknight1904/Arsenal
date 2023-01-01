@@ -64,10 +64,6 @@ class MultiHeadAttention(nn.Module):
     def build_value(self): return nn.Linear(self.emb_dim*self.num_heads, self.v_dim*self.num_heads)
 
     def build_linear(self): return nn.Linear(self.emb_dim*self.num_heads, self.v_dim*self.num_heads)
-        
-    # def _headify(self, x):
-    #     b, l, *_ = x.shape
-    #     return x.view(b, l, self.num_heads, self.d_head).transpose(1,2)
 
     def _straight(self, x):
         return x

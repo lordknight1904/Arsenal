@@ -1,2 +1,2 @@
-from .base import *
+from .base.base import *
 from .multiview import *
