@@ -1,2 +1,3 @@
-from .base.base import *
+from .base import *
+from .vision import *
 from .multiview import *

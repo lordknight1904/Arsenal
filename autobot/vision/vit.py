@@ -2,8 +2,8 @@
 from typing import Tuple
 from torch import nn
 
-from ..base import RelativeTransformer
 from .base import ImageEmbedding
+from ..base import RelativeTransformer
 
 
 class ClassificationHead(nn.Module):
