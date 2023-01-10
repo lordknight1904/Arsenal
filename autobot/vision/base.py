@@ -61,28 +61,37 @@ class ImageNetSplit(BaseSplit):
 
             return ImageNetSplit.ClassificationImage.from_path(file_path, label_id)
 
-        with open(path.joinpath(folder_path, 'LOC_val_solution.csv')) as csv_file, \
-        h5py.File(h5py_path, 'w') as h5py_file:
+        # get number of samples
+        n_sample = 0
+        with open(path.joinpath(folder_path, 'LOC_val_solution.csv')) as csv_file:
             dt = csv.reader(csv_file)
-            next(dt)  # skip header row
+            next(dt)
+            for _ in dt:
+                n_sample += 1
+        print(n_sample)
 
-            dtype = np.dtype([
-                ('width', np.uint16),
-                ('height', np.uint16),
-                ('image', h5py.vlen_dtype(ImageNetSplit.ClassificationImage.image_dtype)),
-                ('label', ImageNetSplit.ClassificationImage.label_dtype),
-            ])
-            ds = h5py_file.create_dataset('data', (50000,), dtype=dtype)
+        # with open(path.joinpath(folder_path, 'LOC_val_solution.csv')) as csv_file, \
+        # h5py.File(h5py_path, 'w') as h5py_file:
+        #     dt = csv.reader(csv_file)
+        #     next(dt)  # skip header row
 
-            for i, row in enumerate(dt):  # read each row into a Sample
-                print(f'\r{i}', end='')
-                sup_img = _process_row(row)
-                ds[i] = sup_img.to_disk()
-                # break
-            print()
+        #     dtype = np.dtype([
+        #         ('width', np.uint16),
+        #         ('height', np.uint16),
+        #         ('image', h5py.vlen_dtype(ImageNetSplit.ClassificationImage.image_dtype)),
+        #         ('label', ImageNetSplit.ClassificationImage.label_dtype),
+        #     ])
+        #     ds = h5py_file.create_dataset('data', (n_sample,), dtype=dtype)
 
-            h5py_file.attrs['split'] = split
-            h5py_file.attrs['size'] = i+1
+        #     for i, row in enumerate(dt):  # read each row into a Sample
+        #         print(f'\r{i}', end='')
+        #         sup_img = _process_row(row)
+        #         ds[i] = sup_img.to_disk()
+        #         # break
+        #     print()
+
+        #     h5py_file.attrs['split'] = split
+        #     h5py_file.attrs['size'] = i+1
 
         return cls(
             file_path=h5py_path,
