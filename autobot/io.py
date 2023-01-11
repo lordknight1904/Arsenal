@@ -25,19 +25,14 @@ class BaseSplit(Dataset):
                 del self[value]
             dict.__setitem__(self, key, value)
             dict.__setitem__(self, value, key)
-            # super().__setitem__(self, key, value)
-            # super().__setitem__(self, value, key)
 
         def __delitem__(self, key):
             dict.__delitem__(self, self[key])
             dict.__delitem__(self, key)
-            # super().__delitem__(self, self[key])
-            # super().__delitem__(self, key)
 
         def __len__(self):
             """Returns the number of connections"""
             return dict.__len__(self) // 2
-            # return super().__len__(self) // 2
 
     @dataclass(slots=True)
     class InputImage:
