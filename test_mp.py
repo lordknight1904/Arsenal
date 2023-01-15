@@ -32,7 +32,9 @@ def main():
         for _ in range(n):
             yield 112272535095293
 
-    with concurrent.futures.ProcessPoolExecutor(mp.cpu_count()) as executor:
+    with concurrent.futures.ProcessPoolExecutor(
+        mp.cpu_count(),
+    ) as executor:
         for i, (prime) in enumerate(executor.map(is_prime, _get_gen(1000))):
             print(f'\r{i} {prime}', end='')
             # print(f'{int(number)} is prime: {prime}, {i}')

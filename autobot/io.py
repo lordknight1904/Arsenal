@@ -14,6 +14,7 @@ class BaseSplit(Dataset):
     '''
         A HDF5-based PyTorch Dataset
             - support for multiple workers (num_worker > 0)
+            - support for asynchronous multiprocessing for pre-process dataset
     '''
     class IOMapping(dict):
 

@@ -8,6 +8,8 @@ import h5py
 from dataclasses import dataclass
 from typing import ClassVar, Tuple
 from pathlib import Path as path
+import concurrent.futures
+import multiprocessing as mp
 import numpy as np
 
 from ..io import BaseSplit
@@ -32,6 +34,25 @@ class ImageNetSplit(BaseSplit):
             return (self.image.shape[1], self.image.shape[0], self.image.flatten(), self.label,)
 
     @classmethod
+    def _process_row(cls, row):
+        sample_id = row[0]
+
+        strings = sample_id.split('_')
+        split = strings[1] if strings[0] == 'ILSVRC2012' else 'train'
+    
+        file_path = path.joinpath(_p, 'ILSVRC', 'Data', 'CLS-LOC')
+        if split == 'train':
+            file_path = path.joinpath(file_path, strings[0], strings[1], f'{sample_id}.JPEG')
+        else:
+            file_path = path.joinpath(file_path, split, f'{sample_id}.JPEG')
+
+        # label_name, *bboxes = row[1].strip().split(' ')
+        label_name = row[1].strip().split(' ')[0]
+        label_id = _dict[label_name]
+
+        return cls.ClassificationImage.from_path(file_path, label_id)
+
+    @classmethod
     def from_path(cls, folder_path, split):
         h5py_path = path.joinpath(folder_path, f'{split}.h5')
 
@@ -43,23 +64,11 @@ class ImageNetSplit(BaseSplit):
                 label_idx = segments[0]
                 custom_dict[label_idx] = i
 
-        def _process_row(row):
-            sample_id = row[0]
-
-            strings = sample_id.split('_')
-            split = strings[1] if strings[0] == 'ILSVRC2012' else 'train'
-        
-            file_path = path.joinpath(folder_path, 'ILSVRC', 'Data', 'CLS-LOC')
-            if split == 'train':
-                file_path = path.joinpath(file_path, strings[0], strings[1], f'{sample_id}.JPEG')
-            else:
-                file_path = path.joinpath(file_path, split, f'{sample_id}.JPEG')
-
-            # label_name, *bboxes = row[1].strip().split(' ')
-            label_name = row[1].strip().split(' ')[0]
-            label_id = custom_dict[label_name]
-
-            return ImageNetSplit.ClassificationImage.from_path(file_path, label_id)
+        def _initializer(d, p):
+            global _dict
+            global _p
+            _dict = d
+            _p = p
 
         # get number of samples
         n_sample = 0
@@ -70,11 +79,43 @@ class ImageNetSplit(BaseSplit):
                 n_sample += 1
         print(n_sample)
 
-        # with open(path.joinpath(folder_path, 'LOC_val_solution.csv')) as csv_file, \
-        # h5py.File(h5py_path, 'w') as h5py_file:
-        #     dt = csv.reader(csv_file)
-        #     next(dt)  # skip header row
+        def _read_path(_p, file_path):
 
+            with open(file_path) as csv_file:
+                dt = csv.reader(csv_file)
+                next(dt)  # skip header row
+                for row in dt:
+                    
+                    sample_id = row[0]
+
+                    strings = sample_id.split('_')
+                    split = strings[1] if strings[0] == 'ILSVRC2012' else 'train'
+                
+                    file_path = path.joinpath(_p, 'ILSVRC', 'Data', 'CLS-LOC')
+                    if split == 'train':
+                        file_path = path.joinpath(file_path, strings[0], strings[1], f'{sample_id}.JPEG')
+                    else:
+                        file_path = path.joinpath(file_path, split, f'{sample_id}.JPEG')
+
+                    # label_name, *bboxes = row[1].strip().split(' ')
+                    label_name = row[1].strip().split(' ')[0]
+                    label_id = _dict[label_name]
+
+                    yield cls.ClassificationImage.from_path(file_path, label_id)
+
+        for a in _read_path(path.joinpath(folder_path, 'LOC_val_solution.csv')):
+            print(a)
+            break
+
+        # gen = _read_path(path.joinpath(folder_path, 'LOC_val_solution.csv'))
+        
+        # with h5py.File(h5py_path, 'w') as h5py_file, \
+        #     concurrent.futures.ThreadPoolExecutor(
+        #         mp.cpu_count(),
+        #         # 20,
+        #         initializer=_initializer,
+        #         initargs=(custom_dict, folder_path)
+        #     ) as executor:
         #     dtype = np.dtype([
         #         ('width', np.uint16),
         #         ('height', np.uint16),
@@ -83,13 +124,10 @@ class ImageNetSplit(BaseSplit):
         #     ])
         #     ds = h5py_file.create_dataset('data', (n_sample,), dtype=dtype)
 
-        #     for i, row in enumerate(dt):  # read each row into a Sample
+        #     for i, process_img in enumerate(executor.map(cls._process_row, gen)):
         #         print(f'\r{i}', end='')
-        #         sup_img = _process_row(row)
-        #         ds[i] = sup_img.to_disk()
-        #         # break
+        #         ds[i] = process_img.to_disk()
         #     print()
-
         #     h5py_file.attrs['split'] = split
         #     h5py_file.attrs['size'] = i+1
 
