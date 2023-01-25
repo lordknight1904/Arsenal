@@ -38,11 +38,14 @@ class BaseSplit(Dataset):
     @dataclass(slots=True)
     class InputImage:
         image: np.ndarray
-        image_dtype: ClassVar[np.dtype] = np.uint8
+        image_dtype: ClassVar[np.dtype]=np.float32
 
         @classmethod
-        def _img_from_path(cls, path:str) -> np.ndarray:
-            return np.array(Image.open(path), dtype=cls.image_dtype)
+        def _img_from_path(cls, path:str, size, mean=0., std=1.) -> np.ndarray:
+            img = Image.open(path)
+
+            img = np.array(img, dtype=cls.image_dtype)
+            return img
 
         @classmethod
         def from_path(cls, path: str):
