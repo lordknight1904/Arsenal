@@ -1,13 +1,36 @@
 # %%
 import csv
+import h5py
 from dataclasses import dataclass, fields
 from functools import cached_property
 import numpy as np
 # import PIL
 from PIL import Image
-import h5py
 from torch.utils.data import Dataset, default_collate
 from typing import List, Type, ClassVar, Tuple
+
+
+@dataclass(slots=True)
+class InputImage:
+    image: np.ndarray
+    image_dtype: ClassVar[np.dtype]=np.float32
+
+    @classmethod
+    def _img_from_path(cls, path:str, size=0, mean=0., std=1.) -> np.ndarray:
+        img = Image.open(path)
+        img = img.resize((size, size))
+        img = np.array(img) / 255
+        img = (img - mean)/std
+
+        img = np.array(img, dtype=cls.image_dtype)
+        return img
+
+    @classmethod
+    def from_path(cls, path: str):
+        return cls(cls._img_from_path(path))
+
+    def to_disk(self) -> Tuple: 
+        raise NotImplementedError
 
 
 class BaseSplit(Dataset):
@@ -16,48 +39,9 @@ class BaseSplit(Dataset):
             - support for multiple workers (num_worker > 0)
             - support for asynchronous multiprocessing for pre-process dataset
     '''
-    class IOMapping(dict):
-
-        def __setitem__(self, key, value):
-            # Remove any previous connections with these values
-            if key in self:
-                del self[key]
-            if value in self:
-                del self[value]
-            dict.__setitem__(self, key, value)
-            dict.__setitem__(self, value, key)
-
-        def __delitem__(self, key):
-            dict.__delitem__(self, self[key])
-            dict.__delitem__(self, key)
-
-        def __len__(self):
-            """Returns the number of connections"""
-            return dict.__len__(self) // 2
-
-    @dataclass(slots=True)
-    class InputImage:
-        image: np.ndarray
-        image_dtype: ClassVar[np.dtype]=np.float32
-
-        @classmethod
-        def _img_from_path(cls, path:str, size, mean=0., std=1.) -> np.ndarray:
-            img = Image.open(path)
-
-            img = np.array(img, dtype=cls.image_dtype)
-            return img
-
-        @classmethod
-        def from_path(cls, path: str):
-            return cls(cls._img_from_path(path))
-
-        def to_disk(self) -> Tuple: 
-            raise NotImplementedError
-
-    def __init__(self, file_path, split, name):
+    
+    def __init__(self, file_path):
         self.file_path = file_path
-        self.split = split
-        self.name = name
 
         with h5py.File(file_path, "r") as f:
             self.size = f.attrs['size']
@@ -67,7 +51,6 @@ class BaseSplit(Dataset):
 
     def __len__(self): return self.size
 
-    # def __getitem__(self, idx): return self.dataset['data'][idx]
     def __getitem__(self, idx): 
         raise NotImplementedError
     
