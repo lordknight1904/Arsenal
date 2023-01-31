@@ -19,18 +19,29 @@ from ..io import BaseSplit, InputImage
 @dataclass(slots=True)
 class ClassificationImage(InputImage):
     label: np.uint
-    label_dtype: ClassVar[np.dtype] = np.uint16
+    label_dtype: ClassVar[np.dtype] = np.int16  # it16 gives a maximum of 32.767 classes
+
+    h: ClassVar[int]=384
+    w: ClassVar[int]=384
 
     @classmethod
     def from_path(cls, path: str, label: int):
         return cls(
-            image=super(ClassificationImage, cls)._img_from_path(path, 384, 0.5, 0.5),
-            label=cls.label_dtype(label)  # unit16 gives a maximum of 65535 classes
+            image=super(ClassificationImage, cls)._img_from_path(path, cls.h, 0.5, 0.5),
+            label=cls.label_dtype(label)  
         )
     
     def to_disk(self) -> Tuple:
         # return (self.image.shape[1], self.image.shape[0], self.image.flatten(), self.label,)
         return (self.image.flatten(), self.label,)
+
+    @classmethod
+    def from_disk(cls, row) -> Tuple:
+        return {
+            'image': row[0].reshape(cls.h, cls.w, 3).transpose(2, 0, 1),
+            'label': row[1],
+        }
+        # return (row[0].reshape(cls.h, cls.w, 3), row[1])
 
 
 class ImageNetSplit(BaseSplit):
@@ -40,20 +51,9 @@ class ImageNetSplit(BaseSplit):
         with h5py.File(file_path, "r") as f:
             self.w = f.attrs['width']
             self.h = f.attrs['height']
-        print(self.size)
 
     def __getitem__(self, idx):
-        # print('here')
-        sample = self.dataset['data'][idx]
-        image = sample[0].reshape(self.h, self.w, 3)
-        label = sample[1]
-
-        # return {
-        #     'image': image,
-        #     'label': label,
-        # }
-
-        return image, label
+        return ClassificationImage.from_disk(self.dataset['data'][idx])
 
     @classmethod
     def _read_row(cls, row, _p, mapping):
@@ -128,7 +128,13 @@ class ImageNetSplit(BaseSplit):
             ds = h5py_file.create_dataset('data', shape=(n_sample,), dtype=dtype)
 
             worker = partial(cls._read_row, _p=folder_path, mapping=c2i)
-            for i, process_img in enumerate(executor.map(worker, gen, chunksize=10)):
+            for i, process_img in enumerate(
+                executor.map(
+                    worker,
+                    # lambda row: cls._read_row(row, _p=folder_path, mapping=c2i),
+                    gen, chunksize=10
+                )
+            ):
                 print(f'\r{i}', end='')
                 ds[i] = process_img.to_disk()
                 # break
@@ -138,6 +144,8 @@ class ImageNetSplit(BaseSplit):
 
             h5py_file.attrs['width'] = 384
             h5py_file.attrs['height'] = 384
+            
+        return cls(h5py_path)
 
 
 class ImageEmbedding(nn.Module):

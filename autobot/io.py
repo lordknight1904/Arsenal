@@ -17,7 +17,7 @@ class InputImage:
 
     @classmethod
     def _img_from_path(cls, path:str, size=0, mean=0., std=1.) -> np.ndarray:
-        img = Image.open(path)
+        img = Image.open(path).convert('RGB')
         img = img.resize((size, size))
         img = np.array(img) / 255
         img = (img - mean)/std
