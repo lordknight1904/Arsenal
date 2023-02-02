@@ -4,32 +4,22 @@ import h5py
 from dataclasses import dataclass, fields
 from functools import cached_property
 import numpy as np
-# import PIL
-from PIL import Image
 from torch.utils.data import Dataset, default_collate
 from typing import List, Type, ClassVar, Tuple
 
 
 @dataclass(slots=True)
-class InputImage:
-    image: np.ndarray
-    image_dtype: ClassVar[np.dtype]=np.float32
-
-    @classmethod
-    def _img_from_path(cls, path:str, size=0, mean=0., std=1.) -> np.ndarray:
-        img = Image.open(path).convert('RGB')
-        img = img.resize((size, size))
-        img = np.array(img) / 255
-        img = (img - mean)/std
-
-        img = np.array(img, dtype=cls.image_dtype)
-        return img
-
-    @classmethod
-    def from_path(cls, path: str):
-        return cls(cls._img_from_path(path))
+class Input:
+    '''
+        base class for h5py-based input
+        read and write a row
+    '''
 
     def to_disk(self) -> Tuple: 
+        raise NotImplementedError
+
+    @classmethod
+    def from_disk(self, row):
         raise NotImplementedError
 
 

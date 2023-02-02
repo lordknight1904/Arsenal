@@ -127,38 +127,42 @@ import autobot
 
 
 if __name__ == '__main__':
-    device = torch.device('cuda:0')
-    # device = torch.device('cpu')
-
-    model = ViTForImageClassification.from_pretrained('google/vit-base-patch16-384')
-    model.eval()
-    model.to(device)
-    count, total = 0, 0
+    # device = torch.device('cuda:0')
+    # model = ViTForImageClassification.from_pretrained('google/vit-base-patch16-384')
+    # model.eval()
+    # model.to(device)
+    # count, total = 0, 0
     
-    val_ds = autobot.ImageNetSplit.from_path(
+    # val_ds = autobot.ImageNetSplit.from_path(
+    #     folder_path=path.joinpath(path.home(), 'datasets', 'ImageNet'),
+    #     csv_file='LOC_val_solution.csv',
+    #     w=384, h=384,
+    #     use_cache=False
+    # )
+    
+    train_ds = autobot.ImageNetSplit.from_path(
         folder_path=path.joinpath(path.home(), 'datasets', 'ImageNet'),
-        csv_file='LOC_val_solution.csv'
+        csv_file='LOC_train_solution.csv',
+        w=224, h=224,
+        use_cache=False
     )
-    # for i, sample in enumerate(val_ds):
-    #     image, label = sample['image'], sample['label']
-    #     print(image.shape)
-    #     print(label)
-    #     break
     
-    val_loader = DataLoader(val_ds, batch_size=32, shuffle=False, num_workers=6)
-    # for batch in val_loader:
-    #     print(batch['image'].shape)
-    #     print(batch['label'].shape)
+    # val_loader = DataLoader(val_ds, batch_size=32, shuffle=False, num_workers=6)
+    # for i, batch in enumerate(val_loader):
+    #     images, labels = batch['image'], batch['label']
+    #     print(images.shape)
+    #     print(labels.shape)
     #     break
 
-    for i, batch in enumerate(val_loader):
-        images, labels = batch['image'], batch['label']
-        print(f'\r{i}\{len(val_loader)}', end='')
-        with torch.no_grad():
-            outputs = model(images.to(device))
-        pred = outputs.logits.argmax(-1)
-        acc = labels.eq(pred.cpu())
-        count += acc.sum().item()
-        total += labels.shape[0]
 
-    print(count / total)
+    # for i, batch in enumerate(val_loader):
+    #     images, labels = batch['image'], batch['label']
+    #     print(f'\r{i}\{len(val_loader)}', end='')
+    #     with torch.no_grad():
+    #         outputs = model(images.to(device))
+    #     pred = outputs.logits.argmax(-1)
+    #     acc = labels.eq(pred.cpu())
+    #     count += acc.sum().item()
+    #     total += labels.shape[0]
+
+    # print(count / total)
