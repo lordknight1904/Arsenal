@@ -62,6 +62,33 @@ class ClassificationImage(InputImage):
         }
 
 
+class ImageEmbedding(nn.Module):
+    '''
+        Convert an image into a sequences of img_token
+    '''
+
+    def __init__(self, emb_dim: int, patch_size):
+        super().__init__()
+        patch_size = patch_size if isinstance(patch_size, typing.Iterable) else (patch_size, patch_size)
+
+        self.emb_dim = emb_dim
+        self.projection = nn.Conv2d(
+            3, emb_dim,
+            kernel_size=patch_size, stride=patch_size,
+        )  # (B, 3, H, W) --> (B, D, H, W) --> (B, D, H*W) --> (B, H*W, D)
+
+    def forward(self, img):
+        '''
+            Args:
+                img (B, 3, H, W)
+
+            Returns:
+                img_emb (B, H*W, D)
+        '''
+        # return self.projection(img).flatten(2).transpose(1, 2) / torch.sqrt(self.emb_dim
+        return self.projection(img).flatten(2).transpose(1, 2)
+
+
 class ImageNetSplit(BaseSplit):
     
     def __init__(self, file_path):
@@ -99,8 +126,8 @@ class ImageNetSplit(BaseSplit):
             with h5py.File(h5py_path, 'r') as h5py_file:
                 assert h5py_file.attrs.get('split', None) is not None
                 assert h5py_file.attrs.get('size', None) is not None
-                assert h5py_file.attrs.get('h', None) is not None
-                assert h5py_file.attrs.get('w', None) is not None
+                assert h5py_file.attrs.get('height', None) is not None
+                assert h5py_file.attrs.get('width', None) is not None
             return cls(h5py_path)
 
         n_sample = 0
@@ -160,29 +187,3 @@ class ImageNetSplit(BaseSplit):
             
         return cls(h5py_path)
 
-
-class ImageEmbedding(nn.Module):
-    '''
-        Convert an image into a sequences of img_token
-    '''
-
-    def __init__(self, emb_dim: int, patch_size):
-        super().__init__()
-        patch_size = patch_size if isinstance(patch_size, typing.Iterable) else (patch_size, patch_size)
-
-        self.emb_dim = emb_dim
-        self.projection = nn.Conv2d(
-            3, emb_dim,
-            kernel_size=patch_size, stride=patch_size,
-        )  # (B, 3, H, W) --> (B, D, H, W) --> (B, D, H*W) --> (B, H*W, D)
-
-    def forward(self, img):
-        '''
-            Args:
-                img (B, 3, H, W)
-
-            Returns:
-                img_emb (B, H*W, D)
-        '''
-        # return self.projection(img).flatten(2).transpose(1, 2) / torch.sqrt(self.emb_dim
-        return self.projection(img).flatten(2).transpose(1, 2)

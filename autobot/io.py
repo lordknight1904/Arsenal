@@ -43,7 +43,15 @@ class BaseSplit(Dataset):
 
     def __getitem__(self, idx): 
         raise NotImplementedError
+
+    @classmethod
+    def _read_row(cls, row) -> Type[Input]:
+        raise NotImplementedError
     
+    # @staticmethod
+    # def to_disk(file_path):
+    #     import concurrent.futures
+        
 
 if __name__ == '__main__':
     # img = InputImage.from_path('/home/leonard/data/ImageNet/ILSVRC/Data/CLS-LOC/test/ILSVRC2012_test_00000036.JPEG')

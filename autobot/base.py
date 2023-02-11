@@ -1,3 +1,5 @@
+import math
+
 import torch
 from torch import nn
 
@@ -25,29 +27,30 @@ from torch import nn
 
 class FeedForward(nn.Module):
 
-    def __init__(self, emb_dim):
+    def __init__(self, emb_dim, drop_prob=0.1):
         super().__init__() 
         # We set d_ff as a default to 2048
         self.linear_1 = nn.Linear(emb_dim, emb_dim*4)
         self.activation = nn.GELU()
         self.linear_2 = nn.Linear(emb_dim*4, emb_dim)
+        self.drop = nn.Dropout(drop_prob)
 
     def forward(self, x):
         x = self.linear_1(x)
         x = self.activation(x)
         x = self.linear_2(x)
-        return x
+        return self.drop(x)
 
 
 class MultiHeadAttention(nn.Module):
 
     def __init__(self,
-        emb_dim, attn_dim, v_dim,
+        attn_dim, v_dim,
         num_heads,
+        drop_prob=0.1
     ):
         super().__init__()
 
-        self.emb_dim = emb_dim
         self.attn_dim = attn_dim
         self.v_dim = v_dim
         self.num_heads = num_heads
@@ -57,94 +60,79 @@ class MultiHeadAttention(nn.Module):
         self.value = self.build_value()
         self.linear = self.build_linear()
 
-    def build_query(self): return nn.Linear(self.emb_dim*self.num_heads, self.attn_dim*self.num_heads)
+        self.attn_drop = nn.Dropout(drop_prob)
+        self.v_drop = nn.Dropout(drop_prob)
 
-    def build_key(self): return nn.Linear(self.emb_dim*self.num_heads, self.attn_dim*self.num_heads)
+    def build_query(self): return nn.Linear(self.v_dim, self.attn_dim)
 
-    def build_value(self): return nn.Linear(self.emb_dim*self.num_heads, self.v_dim*self.num_heads)
+    def build_key(self): return nn.Linear(self.v_dim, self.attn_dim)
 
-    def build_linear(self): return nn.Linear(self.emb_dim*self.num_heads, self.v_dim*self.num_heads)
+    def build_value(self): return nn.Linear(self.v_dim, self.v_dim)
+
+    def build_linear(self): return nn.Linear(self.v_dim, self.v_dim)
 
     def _straight(self, x):
         return x
 
-    def _calculate_logits(self, q, k, mask):
-        logits = torch.matmul(q, k.transpose(-1,-2)) / torch.sqrt(self.attn_dim)
+    def transpose_for_scores(self, x: torch.Tensor) -> torch.Tensor:
+        new_x_shape = x.size()[:-1] + (self.num_heads, int(self.attn_dim / self.num_heads))
+        x = x.view(new_x_shape)
+        return x.permute(0, 2, 1, 3)
+        
+    def _logits(self, q, k, mask):
+        logits = torch.matmul(q, k.transpose(-1,-2)) / math.sqrt(int(self.attn_dim // self.num_heads))
         if mask:
             mask = mask.unsqueeze(1)
             logits = logits.masked_fill(mask == 0, -1e9)
         return logits
 
-    def _calculate_attn(self, logits):
+    def _attn(self, logits):
         return torch.softmax(logits, dim=-1)
 
     def forward(self, x, y, mask=None):
         b, s, *_ = x.shape
         _, t, *_ = y.shape
 
-        query = self.query(y).view(b, t, self.num_heads, self.attn_dim).transpose(1, 2)
-        key = self.key(x).view(b, s, self.num_heads, self.attn_dim).transpose(1, 2)
-        value = self.value(x).view(b, s, self.num_heads, self.v_dim).transpose(1, 2)
+        query = self.transpose_for_scores(self.query(y))
+        key = self.transpose_for_scores(self.key(x))
+        value = self.transpose_for_scores(self.value(x))
 
-        logits = self._calculate_attn(query, key, mask)
-        attn = self._calculate_attn(logits)
+        logits = self._logits(query, key, mask)
+        attn = self._attn(logits)
+        attn = self.attn_drop(attn)
 
-        o = self.linear(
-            torch.matmul(attn, value).contiguous().view(b, -1, self.v_dim)
-        )
+        context = torch.matmul(attn, value).contiguous().permute(0, 2, 1, 3).contiguous()
+        context = context.view(context.size()[:-2] + (self.v_dim,))
+
+        o = self.linear(context)
+        o = self.v_drop(o)
 
         return o
-
-
-class RelativeMultiHeadAttention(MultiHeadAttention):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # self.rel_emb = 
-
-    def forward(self, x, H, W):
-
-        return x
 
 
 class EncoderBlock(nn.Module):
 
     def __init__(self,
-        emb_dim, attn_dim, v_dim,
+        # mha_cls,
+        emb_dim, attn_dim,
         num_heads,
         drop_prob=0.1
     ):
         super().__init__()
 
-        self.mha = MultiHeadAttention(emb_dim, attn_dim, v_dim, num_heads)
-        self.drop = nn.Dropout(drop_prob)
-        self.mha_norm = nn.LayerNorm(emb_dim)
+        self.mha = MultiHeadAttention(attn_dim, emb_dim, num_heads, drop_prob)
+        self.mha_norm = nn.LayerNorm(emb_dim, eps=1e-12)
         self.ff = FeedForward(emb_dim)
-        self.ff_norm = nn.LayerNorm(emb_dim)
+        self.ff_norm = nn.LayerNorm(emb_dim, eps=1e-12)
 
+    def forward(self, x, mask=None):
+        x_ = x
+        x = self.mha_norm(x)
+        x = self.mha(x, x, mask)
+        x_ = x + x_
 
-class RelativeTransformer(nn.Module):  # Pre-norm
-
-    def __init__(self,
-        emb_dim, attn_dim, v_dim,
-        num_heads,
-        drop_prob=0.1
-    ):
-        super().__init__()
-
-        self.mha = MultiHeadAttention(emb_dim, attn_dim, v_dim, num_heads)
-        self.drop = nn.Dropout(drop_prob)
-        self.mha_norm = nn.LayerNorm(emb_dim)
-        self.ff = FeedForward(emb_dim)
-        self.ff_norm = nn.LayerNorm(emb_dim)
-
-    def forward(self, x, H, W):
-        x_ = self.mha_norm(x)
-        x_, score = self.mha(x_, x_, x_)
-        x = x + self.drop(x_)
-            
-        x_ = self.ff_norm(x)
-        x = x + self.ff(x_)
+        x = self.ff_norm(x_)
+        x = self.ff(x)
+        x = x + x_
 
         return x
