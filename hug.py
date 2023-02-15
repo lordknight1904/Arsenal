@@ -15,6 +15,7 @@ import numpy as np
 from typing import ClassVar, Tuple
 
 import autobot
+from trainer import Trainer
 
 
 if __name__ == '__main__':
@@ -25,6 +26,10 @@ if __name__ == '__main__':
         w=384, h=384,
         use_cache=True
     )
+
+    # for sample in val_ds:
+    #     print(sample)
+    #     break
     
     # train_ds = autobot.ImageNetSplit.from_path(
     #     folder_path=path.joinpath(path.home(), 'datasets', 'ImageNet'),
@@ -33,15 +38,12 @@ if __name__ == '__main__':
     #     use_cache=False
     # )
     
-    val_loader = DataLoader(val_ds, batch_size=64, shuffle=False, num_workers=6)
-    # for i, batch in enumerate(val_loader):
-    #     images, labels = batch['image'], batch['label']
-    #     print(images.shape)
-    #     print(labels.shape)
-    #     break
+    # val_loader = DataLoader(
+    #     val_ds,
+    #     batch_size=64,
+    #     shuffle=False, num_workers=0
+    # )
 
-    device = torch.device('cuda:0')
-    # model = ViTForImageClassification.from_pretrained('google/vit-base-patch16-384')
     model = autobot.vit.VisionTransformer.from_hugging_face(
         patch_size=16,
         emb_dim=768, num_heads=12,
@@ -49,22 +51,44 @@ if __name__ == '__main__':
         num_classes=1000,
         img_size=(384, 384)
     )
-    model.eval()
-    model.to(device)
-    count, total = 0, 0
+    trainer = Trainer(
+        model,
+        None,
+        val_ds,
+        None,
+        batch_size=64
+    )
+    trainer.start(1)
+    
+    # for i, batch in enumerate(val_loader):
+    #     images, labels = batch['image'], batch['label']
+    #     # print(images.shape)
+    #     # print(labels.shape)
+    #     # break
+    # print(i)
 
-    for i, batch in enumerate(val_loader):
-        images, labels = batch['image'], batch['label']
-        print(f'\r{i:<3}/{len(val_loader):<3} {100*i/len(val_loader):.0f}%', end='')
-        with torch.no_grad(), torch.cuda.amp.autocast():
-            outputs = model(images.to(device))
-            # print('outputs', outputs.shape)
-        # pred = outputs.logits.argmax(-1)
-        pred = outputs.argmax(-1)
-        acc = labels.eq(pred.cpu())
-        count += acc.sum().item()
-        total += labels.shape[0]
+    # max_step = 100
 
-    print()
-    print(count / total)
+    # while val_loader:
+    #     batch =
+    # device = torch.device('cuda:0')
+    # # model = ViTForImageClassification.from_pretrained('google/vit-base-patch16-384')
+    # model.eval()
+    # model.to(device)
+    # count, total = 0, 0
+
+    # for i, batch in enumerate(val_loader):
+    #     images, labels = batch['image'], batch['label']
+    #     print(f'\r{i:<3}/{len(val_loader):<3} {100*i/len(val_loader):.0f}%', end='')
+    #     with torch.no_grad(), torch.cuda.amp.autocast():
+    #         outputs = model(images.to(device))
+    #         # print('outputs', outputs.shape)
+    #     # pred = outputs.logits.argmax(-1)
+    #     pred = outputs.argmax(-1)
+    #     acc = labels.eq(pred.cpu())
+    #     count += acc.sum().item()
+    #     total += labels.shape[0]
+
+    # print()
+    # print(count / total)
 # 
