@@ -6,6 +6,8 @@ import autobot
 
 import torchmetrics as metric
 
+import numpy as np
+
 from dataclasses import dataclass
 from typing import Type, List, Tuple
 from torch.utils.tensorboard import SummaryWriter
@@ -13,15 +15,16 @@ from torch.utils.tensorboard import SummaryWriter
 
 @dataclass
 class InputBatch:
-    inp: torch.Tensor
+    image: torch.Tensor
     label: torch.Tensor
 
     @classmethod
     def from_supervise_samples(cls, samples: List[Type[autobot.Input]]):
         return cls(
-            inp=samples.img,
-            inp=samples.img,
+            image=torch.tensor(np.array([sample.image for sample in samples])),
+            label=torch.tensor(np.array([sample.label for sample in samples])),
         )
+
 
 class Trainer:
 
@@ -31,8 +34,10 @@ class Trainer:
         val_ds: Type[autobot.BaseSplit],
         test_ds: Type[autobot.BaseSplit],
         batch_size: int,
+        batch_cls: Type[InputBatch],
     ):
-        self.device = torch.device('cuda:0')
+        # self.device = torch.device('cuda:0')
+        self.device = torch.device('cpu')
         self.batch_size = batch_size
         self.amp = torch.cuda.amp.autocast()
 
@@ -48,12 +53,22 @@ class Trainer:
 
         self.metrics = self._build_metrics()
 
-    def _init_loader(self, ds: Type[autobot.BaseSplit], is_shuffle: bool=True):
-        return DataLoader(ds, batch_size=self.batch_size, shuffle=is_shuffle, num_workers=4)
-    
-    def _build_loss(self): ...
+        self.batch_cls = batch_cls
 
-    def _build_metric(self) -> List[str, Type[metric.Metric]]:
+    def _collate_fn(self, samples: List[Type[autobot.Input]]):
+        return self.batch_cls.from_supervise_samples(samples)
+
+    def _init_loader(self, ds: Type[autobot.BaseSplit], is_shuffle: bool=True):
+        return DataLoader(
+            ds,
+            batch_size=self.batch_size, shuffle=is_shuffle,
+            collate_fn=self._collate_fn,
+            num_workers=0,
+        )
+    
+    # def _build_loss(self): ...
+
+    def _build_metrics(self) -> List[Tuple[str, Type[metric.Metric]]]:
         return [
             ('Accuracy', metric.Accuracy(task="multiclass", num_classes=1000, top_k=1).to(self.device))
         ]
@@ -65,7 +80,7 @@ class Trainer:
         for i, batch in enumerate(self.val_loader):
             print(f'\r{i:<3}/{len(self.val_loader):<3} {100*i/len(self.val_loader):.0f}%', end='')
             images, labels = batch['image'], batch['label']
-            with torch.no_grad(), torch.cuda.amp.autocast():
+            with torch.no_grad(), self.amp:
                 preds = self.network(images.to(self.device))
             self.accuracy(preds, labels.to(self.device))
 

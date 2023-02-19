@@ -4,32 +4,27 @@ title: Animal example
 ---
 ```mermaid
 classDiagram
-    class Duck{
-        +String beakColor
-        +swim()
-        +quack()
+    class Input {
+        +Pillow image
+        -from_disk()
     }
-    class Fish{
-        -int sizeInFeet
-        -canEat()
+    class TrainableInput {
+        +Tensor prediction
+        +from_input()
     }
-    class Zebra{
-        +bool is_wild
-        +run()
+    class Sample {
+        +numpy label
+        +from_trainable_input()
+        +from_input()
     }
-    class Animal{
-        +int age
-        +String gender
-        +isMammal()
-        +mate()
+    
+    class Sample {
+        +numpy label
+        +from_trainable_input()
+        +from_input()
     }
 
-    Animal <|-- Duck
-    Animal <|-- Fish
-    Animal <|-- Zebra
+    TrainableInput <|-- Input
+    Sample <|-- TrainableInput
+    Sample <|-- Input
 ```
-
-    Animal : +int age
-    Animal : +String gender
-    Animal: +isMammal()
-    Animal: +mate()

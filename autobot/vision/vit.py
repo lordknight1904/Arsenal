@@ -7,6 +7,8 @@ from torch import nn
 from .base import ImageEmbedding
 from ..base import EncoderBlock
 
+from .io import InputClassificationImageBatch
+
 
 class VisionTransformer(nn.Module):
 
@@ -36,7 +38,8 @@ class VisionTransformer(nn.Module):
         self.layernorm = nn.LayerNorm(emb_dim, eps=1e-12)
         self.classifier =  nn.Linear(emb_dim, num_classes)
 
-    def forward(self, img):
+    def forward(self, batch: InputClassificationImageBatch):
+        img = batch.image
         B, _, H, W = img.shape  # B, C, H, W
 
         cls_tokens = self.cls_token.expand(B, -1, -1)
